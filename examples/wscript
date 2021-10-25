@@ -3,3 +3,6 @@
 def build(bld):
     obj = bld.create_ns3_program('tcp-stream', ['dash', 'internet', 'wifi', 'buildings', 'applications', 'point-to-point'])
     obj.source = 'tcp-stream.cc'
+
+    obj = bld.create_ns3_program('simple-tcp-streaming', ['core', 'dash', 'internet', 'applications', 'point-to-point'])
+    obj.source = 'simple-tcp-streaming.cc'
