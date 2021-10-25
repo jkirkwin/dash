@@ -597,37 +597,41 @@ TcpStreamClient::LogPlayback ()
   playbackLog.flush ();
 }
 
+std::string 
+TcpStreamClient::LogFileName(const std::string& simId, const std::string& clientId, const std::string& logSuffix) {
+  return dashLogDirectory + m_algoName + "/" + simId + "/" "cl" + clientId + "_"  + logSuffix + ".txt";
+}
+
 void
 TcpStreamClient::InitializeLogFiles (std::string simulationId, std::string clientId, std::string numberOfClients)
 {
   NS_LOG_FUNCTION (this);
-
-  std::string dLog = dashLogDirectory + m_algoName + "/" +  numberOfClients  + "/sim" + simulationId + "_" + "cl" + clientId + "_"  + "downloadLog.txt";
+  std::string dLog = LogFileName(simulationId, clientId, "downloadLog");
   downloadLog.open (dLog.c_str ());
   downloadLog << "Segment_Index Download_Request_Sent Download_Start Download_End Segment_Size Download_OK\n";
   downloadLog.flush ();
 
-  std::string pLog = dashLogDirectory + m_algoName + "/" +  numberOfClients  + "/sim" + simulationId + "_" + "cl" + clientId + "_"  + "playbackLog.txt";
+  std::string pLog = LogFileName(simulationId, clientId, "playbackLog");
   playbackLog.open (pLog.c_str ());
   playbackLog << "Segment_Index Playback_Start Quality_Level\n";
   playbackLog.flush ();
 
-  std::string aLog = dashLogDirectory + m_algoName + "/" +  numberOfClients  + "/sim" + simulationId + "_" + "cl" + clientId + "_"  + "adaptationLog.txt";
+  std::string aLog = LogFileName(simulationId, clientId, "adaptationLog");
   adaptationLog.open (aLog.c_str ());
   adaptationLog << "Segment_Index Rep_Level Decision_Point_Of_Time Case DelayCase\n";
   adaptationLog.flush ();
 
-  std::string bLog = dashLogDirectory + m_algoName + "/" +  numberOfClients  + "/sim" + simulationId + "_" + "cl" + clientId + "_"  + "bufferLog.txt";
+  std::string bLog = LogFileName(simulationId, clientId, "bufferLog");
   bufferLog.open (bLog.c_str ());
   bufferLog << "     Time_Now  Buffer_Level \n";
   bufferLog.flush ();
 
-  std::string tLog = dashLogDirectory + m_algoName + "/" +  numberOfClients  + "/sim" + simulationId + "_" + "cl" + clientId + "_"  + "throughputLog.txt";
+  std::string tLog = LogFileName(simulationId, clientId, "throughputLog");
   throughputLog.open (tLog.c_str ());
   throughputLog << "     Time_Now Bytes Received \n";
   throughputLog.flush ();
 
-  std::string buLog = dashLogDirectory + m_algoName + "/" +  numberOfClients  + "/sim" + simulationId + "_" + "cl" + clientId + "_"  + "bufferUnderrunLog.txt";
+  std::string buLog = LogFileName(simulationId, clientId, "bufferUnderrunLog");
   bufferUnderrunLog.open (buLog.c_str ());
   bufferUnderrunLog << ("Buffer_Underrun_Started_At         Until \n");
   bufferUnderrunLog.flush ();

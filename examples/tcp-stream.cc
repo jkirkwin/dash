@@ -229,12 +229,12 @@ main (int argc, char *argv[])
   std::string algodirstr (dashLogDirectory +  adaptationAlgo );  
   const char * algodir = algodirstr.c_str();
   mkdir (algodir, 0775);
-  std::string dirstr (dashLogDirectory + adaptationAlgo + "/" + ToString (numberOfClients) + "/");
+  std::string dirstr (dashLogDirectory + adaptationAlgo + "/" + ToString (simulationId) + "/");
   const char * dir = dirstr.c_str();
   mkdir(dir, 0775);
 
   std::ofstream clientPosLog;
-  std::string clientPos = dashLogDirectory + "/" + adaptationAlgo + "/" + ToString (numberOfClients) + "/" + "sim" + ToString (simulationId) + "_"  + "clientPos.txt";
+  std::string clientPos = dirstr + "sim" + ToString (simulationId) + "_"  + "clientPos.txt";
   clientPosLog.open (clientPos.c_str());
   NS_ASSERT_MSG (clientPosLog.is_open(), "Couldn't open clientPosLog file");
 
