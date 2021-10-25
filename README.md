@@ -1,7 +1,7 @@
 # DASH-NS3
 A simulation model for HTTP-based adaptive streaming applications
 
-If you use the model, please reference "Simulation Framework for HTTP-Based Adaptive Streaming Applications" by Harald Ott, Konstantin Miller, and Adam Wolisz, 2017
+This model is an extension of "Simulation Framework for HTTP-Based Adaptive Streaming Applications" by Harald Ott, Konstantin Miller, and Adam Wolisz, 2017.
 
 ## NEEDED FILES
 Just drop the repository into the contrib/ folder of ns-3 (only works with ns version between 3.27 and 3.30)
@@ -13,22 +13,31 @@ Since I've already received a lot of questions about errors that arise from this
 Its name needs to remain 'dash'
 
 ## PROGRAM EXECUTION
-The following parameters have to be specified for program execution:
-- simulationId: The Id of this simulation, to distinguish it from others, with same algorithm and number of clients, for logging purposes.
-- numberOfClients: The number of streaming clients used for this simulation.
-- segmentDuration: The duration of a segment in microseconds.
-- adaptationAlgo: The name of the adaptation algorithm the client uses for the simulation. The 'pre-installed' algorithms are tobasco, festive and panda.
-- segmentSizeFile: The relative path (from the ns-3.x/ folder) of the file containing the sizes of the segments of the video. The segment sizes have to be provided as a (n, m) matrix, with n being the number of representation levels and m being the total number of segments. A two-segment long, three representations containing segment size file would look like the following:
+There are two runnable scripts available: 
+* `tcp-stream` - written by the framework's original authors as part of their paper. See the full text for details.
+* `simple-tcp-streaming` - written by J. Kirkwin as a benchmarking tool for further work.
+
+The following parameters must be defined for either one:
+- `simulationId`: The Id of this simulation for logging purposes.
+- `segmentDuration`: The duration of a segment in microseconds.
+- `adaptationAlgo`: The name of the adaptation algorithm the client uses for the simulation. The 'pre-installed' algorithms are tobasco, festive and panda.
+- `segmentSizeFile`: The relative path (from the ns-3.x/ folder) of the file containing the sizes of the segments of the video. The segment sizes have to be provided as a (n, m) matrix, with n being the number of representation levels and m being the total number of segments. A two-segment long, three representations containing segment size file would look like the following:
 
  1564 22394  
  1627 46529  
  1987 121606  
 
-One possible execution of the program would be:
+`tcp-stream` also requires the `numberOfClients` parameter.
+
+One possible execution of the original program would be:
 ```bash
 ./waf --run="tcp-stream --simulationId=1 --numberOfClients=3 --adaptationAlgo=panda --segmentDuration=2000000 --segmentSizeFile=contrib/dash/segmentSizes.txt"
 ```
 
+One possible execution of the benchmarking program would be:
+```bash
+./waf --run="simple-tcp-streaming --simulationId=2 --adaptationAlgo=festive --segmentDuration=2000000 --segmentSizeFile=contrib/dash/segmentSizes.txt"
+```
 
 ## ADDING NEW ADAPTATION ALGORITHMS
 The adaptation algorithm base class is located in src/applications/model/adaptation-algorithm/. If it is desired to implement a new adaptation algorithm, a separate source and header file for the algorithm can be created in the adaptation-algorithm/ folder. An example of how a header file looks like can be seen here:
@@ -98,4 +107,7 @@ else
 ```
 Lastly, the header file of the newly implemented adaptation algorithm needs to be included in the TcpStreamClient header file.
 
-The resulting logfiles will be written to mylogs/algorithmName/numberOfClients/
+## LOGGING
+
+The client logs QoS and playback information in a set of log files in the folder `dash-log-files/<algorithm name>/<simulation ID>`. 
+For example, the logs for a test-run of a simulation with id 2 using the tobasco algorithm would be stored in `dash-log-files/tobasco/2/`. 
