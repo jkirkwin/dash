@@ -251,6 +251,11 @@ private:
    */
   void InitializeLogFiles (std::string simulationId, std::string clientId, std::string numberOfClients);
 
+  /*
+   * \brief Get a file path for the given logging task
+   */
+  std::string LogFileName(const std::string& simId, const std::string& clientId, const std::string& logSuffix);
+
   uint32_t m_dataSize; //!< packet payload size
   uint8_t *m_data; //!< packet payload data
 
