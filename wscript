@@ -1,7 +1,7 @@
 ## -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
 
 def build(bld):
-    module = bld.create_ns3_module('dash', ['internet','config-store','stats'])
+    module = bld.create_ns3_module('dash', ['internet','config-store','stats', 'quic'])
     module.includes = '.'
     module.source = [
         'model/tcp-stream-client.cc',
