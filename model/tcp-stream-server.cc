@@ -83,7 +83,7 @@ TcpStreamServer::StartApplication (void)
 
   if (m_socket == 0)
     {
-      TypeId tid = TypeId::LookupByName ("ns3::TcpSocketFactory");
+      TypeId tid = TypeId::LookupByName ("ns3::QuicSocketFactory");
       m_socket = Socket::CreateSocket (GetNode (), tid);
       InetSocketAddress local = InetSocketAddress (Ipv4Address::GetAny (), m_port);
       m_socket->Bind (local);
@@ -92,7 +92,7 @@ TcpStreamServer::StartApplication (void)
 
   if (m_socket6 == 0)
     {
-      TypeId tid = TypeId::LookupByName ("ns3::TcpSocketFactory");
+      TypeId tid = TypeId::LookupByName ("ns3::QuicSocketFactory");
       m_socket6 = Socket::CreateSocket (GetNode (), tid);
       Inet6SocketAddress local6 = Inet6SocketAddress (Ipv6Address::GetAny (), m_port);
       m_socket6->Bind (local6);
@@ -183,7 +183,7 @@ TcpStreamServer::HandleAccept (Ptr<Socket> s, const Address& from)
   cbd.send = false;
   m_callbackData [from] = cbd;
   m_connectedClients.push_back (from);
-  s->SetRecvCallback (MakeCallback (&TcpStreamServer::HandleRead, this));
+  s->SetRecvCallback ( MakeCallback (&TcpStreamServer::HandleRead, this));
   s->SetSendCallback ( MakeCallback (&TcpStreamServer::HandleSend, this));
 }
 

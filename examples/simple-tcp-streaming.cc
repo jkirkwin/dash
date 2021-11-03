@@ -33,6 +33,7 @@
 #include "ns3/applications-module.h"
 #include "ns3/tcp-stream-helper.h"
 #include "ns3/tcp-stream-interface.h"
+#include "ns3/quic-module.h"
 
 using namespace ns3;
 
@@ -92,17 +93,18 @@ main (int argc, char *argv[])
   pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("5Mbps")); // Arbitrary; can be changed later.
   pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms")); // Arbitrary; can be changed later.
 
+  // TODO enable tracing so we can get a udp dump of what's happening
+  
+
   NetDeviceContainer netDevices;
   netDevices = pointToPoint.Install (nodes);
 
-  std::cout << netDevices.GetN() << " net devices" << std::endl;
-
-  InternetStackHelper stack;
-  stack.Install (nodes);
+  // Install QUIC stack on client and server nodes
+  QuicHelper stack;
+  stack.InstallQuic (nodes);
 
   Ipv4AddressHelper address;
   address.SetBase ("10.1.1.0", "255.255.255.0");
-
   Ipv4InterfaceContainer interfaces = address.Assign (netDevices);
 
   // Set up the streaming server

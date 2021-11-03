@@ -34,7 +34,6 @@
 #include <stdlib.h>
 #include "ns3/global-value.h"
 #include <ns3/core-module.h>
-#include "tcp-stream-server.h"
 #include <unistd.h>
 #include <iterator>
 #include <numeric>
@@ -88,7 +87,6 @@ TcpStreamClient::Controller (controllerEvent event)
           state = playing;
         }
       controllerEvent ev = playbackFinished;
-      // std::cerr << "Client " << m_clientId << " " << Simulator::Now ().GetSeconds () << "\n";
       Simulator::Schedule (MicroSeconds (m_videoData.segmentDuration), &TcpStreamClient::Controller, this, ev);
       return;
     }
@@ -128,7 +126,6 @@ TcpStreamClient::Controller (controllerEvent event)
             {
               /*  e_pb  */
               controllerEvent ev = playbackFinished;
-              // std::cerr << "FIRST CASE. Client " << m_clientId << " " << Simulator::Now ().GetSeconds () << "\n";
               Simulator::Schedule (MicroSeconds (m_videoData.segmentDuration), &TcpStreamClient::Controller, this, ev);
             }
           else
@@ -307,8 +304,9 @@ TcpStreamClient::Send (T & message)
   PreparePacket (message);
   Ptr<Packet> p;
   p = Create<Packet> (m_data, m_dataSize);
+  
   m_downloadRequestSent = Simulator::Now ().GetMicroSeconds ();
-  m_socket->Send (p);
+  m_socket->Send (p, 1u); // Send requests on a single stream (with ID 1)
 }
 
 void
@@ -470,7 +468,7 @@ TcpStreamClient::StartApplication (void)
   NS_LOG_FUNCTION (this);
   if (m_socket == 0)
     {
-      TypeId tid = TypeId::LookupByName ("ns3::TcpSocketFactory");
+      TypeId tid = TypeId::LookupByName ("ns3::QuicSocketFactory");
       m_socket = Socket::CreateSocket (GetNode (), tid);
       if (Ipv4Address::IsMatchingType (m_peerAddress) == true)
         {
