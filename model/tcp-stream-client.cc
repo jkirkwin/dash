@@ -61,7 +61,7 @@ NS_OBJECT_ENSURE_REGISTERED (TcpStreamClient);
 void
 TcpStreamClient::Controller (controllerEvent event)
 {
-  NS_LOG_FUNCTION (this);
+  NS_LOG_FUNCTION (this << eventStrings.at (event) << stateStrings.at (state));
   if (state == initial)
     {
       RequestRepIndex ();
@@ -159,6 +159,7 @@ TcpStreamClient::Controller (controllerEvent event)
           PlaybackHandle ();
           /*  e_pf  */
           state = terminal;
+          NS_LOG_INFO("Entering terminal state.");
           StopApplication ();
         }
       return;
@@ -283,7 +284,7 @@ TcpStreamClient::~TcpStreamClient ()
 void
 TcpStreamClient::RequestRepIndex ()
 {
-  NS_LOG_FUNCTION (this);
+  NS_LOG_FUNCTION (this << m_segmentCounter);
   algorithmReply answer;
 
   answer = algo->GetNextRep ( m_segmentCounter, m_clientId );
@@ -292,7 +293,11 @@ TcpStreamClient::RequestRepIndex ()
 
   m_playbackData.playbackIndex.push_back (answer.nextRepIndex);
   m_bDelay = answer.nextDownloadDelay;
-  // std::cerr << m_segmentCounter << "\n";
+
+  if (m_bDelay > 0) {
+    NS_LOG_INFO("Download delay of " << m_bDelay << " requested");
+  }
+
   LogAdaptation (answer);
 }
 
@@ -363,7 +368,7 @@ TcpStreamClient::ReadInBitrateValues (std::string segmentSizeFile)
 void
 TcpStreamClient::SegmentReceivedHandle ()
 {
-  NS_LOG_FUNCTION (this);
+  NS_LOG_FUNCTION (this << m_segmentCounter);
   m_transmissionEndReceivingSegment = Simulator::Now ().GetMicroSeconds ();
 
 
@@ -403,11 +408,12 @@ TcpStreamClient::SegmentReceivedHandle ()
 bool
 TcpStreamClient::PlaybackHandle ()
 {
-  NS_LOG_FUNCTION (this);
+  NS_LOG_FUNCTION (this << m_currentPlaybackIndex);
   int64_t timeNow = Simulator::Now ().GetMicroSeconds ();
   // if we got called and there are no segments left in the buffer, there is a buffer underrun
   if (m_segmentsInBuffer == 0 && m_currentPlaybackIndex < m_lastSegmentIndex && !m_bufferUnderrun)
     {
+      NS_LOG_LOGIC("Buffer under-run when trying to play segment " << m_segmentCounter);
       m_bufferUnderrun = true;
       bufferUnderrunLog << std::setfill (' ') << std::setw (26) << timeNow / (double)1000000 << " ";
       bufferUnderrunLog.flush ();
@@ -417,6 +423,7 @@ TcpStreamClient::PlaybackHandle ()
     {
       if (m_bufferUnderrun)
         {
+          NS_LOG_LOGIC("Recovered from buffer under-run when trying to play segment " << m_segmentCounter);
           m_bufferUnderrun = false;
           bufferUnderrunLog << std::setfill (' ') << std::setw (13) << timeNow / (double)1000000 << "\n";
           bufferUnderrunLog.flush ();
@@ -537,7 +544,7 @@ void
 TcpStreamClient::ConnectionFailed (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
-  NS_LOG_LOGIC ("Tcp Stream Client connection failed");
+  NS_LOG_WARN ("Tcp Stream Client connection failed");
 }
 
 void
@@ -576,7 +583,7 @@ TcpStreamClient::LogBuffer ()
 void
 TcpStreamClient::LogAdaptation (algorithmReply answer)
 {
-  NS_LOG_FUNCTION (this);
+  NS_LOG_FUNCTION (this << m_currentRepIndex);
   adaptationLog << std::setfill (' ') << std::setw (13) << m_segmentCounter << " "
                 << std::setfill (' ') << std::setw (9) << m_currentRepIndex << " "
                 << std::setfill (' ') << std::setw (22) << answer.decisionTime / (double)1000000 << " "

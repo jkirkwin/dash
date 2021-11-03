@@ -201,6 +201,7 @@ TcpStreamServer::HandlePeerClose (Ptr<Socket> socket)
           // No more clients left in m_connectedClients, simulation is done.
           if (m_connectedClients.size () == 0)
             {
+              NS_LOG_INFO("No remaining client connections. Stopping simulator.");
               Simulator::Stop ();
             }
           return;

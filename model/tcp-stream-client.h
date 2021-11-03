@@ -98,6 +98,12 @@ private:
   };
   controllerState state;
 
+  // Used for logging purposes to convert controllerState's into user-readable
+  // strings
+  const std::vector<std::string> stateStrings {
+    "initial", "downloading", "downloadingPlaying", "playing", "terminal"
+  };
+
   /**
    * \brief This enum is used to define the controller events of the state machine which controls the behaviour of the client.
    */
@@ -105,6 +111,13 @@ private:
   {
     downloadFinished, playbackFinished, irdFinished, init
   };
+
+  // Used for logging purposes to convert controllerEvent's into user-readable
+  // strings
+  const std::vector<std::string> eventStrings {
+    "downloadFinished", "playbackFinished", "irdFinished", "init"
+  };
+
   AdaptationAlgorithm *algo;
 
   virtual void StartApplication (void);
@@ -138,6 +151,7 @@ private:
    */
   template <typename T>
   void PreparePacket (T & message);
+
   /**
    * \brief Send a packet to the server.
    *
@@ -146,6 +160,7 @@ private:
    */
   template <typename T>
   void Send (T & message);
+
   /**
    * \brief Handle a packet reception.
    *
@@ -156,19 +171,23 @@ private:
    * \param socket the socket the packet was received to.
    */
   void HandleRead (Ptr<Socket> socket);
+
   /**
    * \brief triggered by SetConnectCallback if a connection to a host was established.
    */
   void ConnectionSucceeded (Ptr<Socket> socket);
+  
   /**
    * \brief triggered by SetConnectCallback if a connection to a host could not be established.
    */
   void ConnectionFailed (Ptr<Socket> socket);
+
   /**
    * Called after a segment was completely received from the server, meaning that the received number
    * of bytes == the requested number of bytes. Throughput data and buffer data is logged.
    */
   void SegmentReceivedHandle ();
+
   /**
    * \brief Read in bitrate values
    *
@@ -176,6 +195,7 @@ private:
    * as a 2x2 matrix, with spaces separating the segment sizes and newlines for every representation level.
    */
   int ReadInBitrateValues (std::string segmentSizeFile);
+
   /*
    * \brief Controls / simulates playback process
    *
@@ -188,6 +208,7 @@ private:
    * \return true if there is a buffer underrun
    */
   bool PlaybackHandle ();
+
   /*
    * \brief Request the next representation index from algorithm.
    *
@@ -196,6 +217,7 @@ private:
    * The algorithm returns an algorithmReply struct, the received values are stored in local variables for logging purposes.
    */
   void RequestRepIndex ();
+
   /*
    * \brief Log segment download information
    *
@@ -207,6 +229,7 @@ private:
    * - confirmation if segment was downloaded, Y for yes, N for no
    */
   void LogDownload ();
+
   /*
    * \brief Log buffer level
    *
@@ -219,6 +242,7 @@ private:
    * - buffer level after segment is added to buffer
    */
   void LogBuffer ();
+
   /*
    * \brief Log throughput information about single arriving TCP packets
    *
@@ -226,6 +250,7 @@ private:
    * - size of packet
    */
   void LogThroughput (uint32_t packetSize);
+
   /*
    * \brief Log information about playback process
    *
@@ -233,6 +258,7 @@ private:
    * - point in time when playback of above mentioned segment starts
    */
   void LogPlayback ();
+
   /*
    * \brief Log information about adaptation algorithm.
    *
@@ -243,6 +269,7 @@ private:
    * \param answer containing the answer the adaptation algorithm has provided.
    */
   void LogAdaptation (algorithmReply answer);
+
   /*
    * \brief Open log output files with streams.
    *
