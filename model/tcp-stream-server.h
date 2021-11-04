@@ -118,6 +118,14 @@ private:
   void HandlePeerError (Ptr<Socket> socket);
 
   /**
+   * \brief Called when a new connection is requested.
+   * 
+   * Determine whether the request should be accepted or denied. In practice,
+   * connections will never be refused voluntarily.
+   */
+  bool HandleConnectionRequest (Ptr<Socket> socket, const Address& from);
+
+  /**
    * \brief Deserialize what the client has sent us.
    * \param packet the data the client has sent us
    * \return the deserialized packet content as a string

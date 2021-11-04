@@ -535,7 +535,6 @@ void
 TcpStreamClient::ConnectionSucceeded (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
-  NS_LOG_LOGIC ("Tcp Stream Client connection succeeded");
   controllerEvent event = init;
   Controller (event);
 }

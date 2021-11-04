@@ -100,8 +100,8 @@ TcpStreamServer::StartApplication (void)
     }
 
   // Accept connection requests from remote hosts.
-  m_socket->SetAcceptCallback (MakeNullCallback<bool, Ptr< Socket >, const Address &> (),
-                               MakeCallback (&TcpStreamServer::HandleAccept,this));
+  m_socket->SetAcceptCallback (MakeCallback (&TcpStreamServer::HandleConnectionRequest, this),
+                               MakeCallback (&TcpStreamServer::HandleAccept, this));
   m_socket->SetCloseCallbacks (
     MakeCallback (&TcpStreamServer::HandlePeerClose, this),
     MakeCallback (&TcpStreamServer::HandlePeerError, this));
@@ -213,6 +213,13 @@ void
 TcpStreamServer::HandlePeerError (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
+}
+
+bool 
+TcpStreamServer::HandleConnectionRequest (Ptr<Socket> socket, const Address& from)
+{
+  NS_LOG_FUNCTION (this << socket << from);
+  return true; // Accept all requests
 }
 
 int64_t
