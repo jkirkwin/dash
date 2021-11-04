@@ -128,21 +128,58 @@ private:
    *
    * When a client object is created, it is initiated as follows and finds itself in state initial:
    * - It creates an adaptation algorithm object of the kind specified for this particular simulation.
-   * - The reduced version of the MPD, containing the duration of a segment in microseconds and a (n x m) matrix consisting of n representations and m segment sizes, denoted in bytes, is being read in from the file specified at program start.
+   * - The reduced version of the MPD, containing the duration of a segment in microseconds and a (n x m)
+   *   matrix consisting of n representations and m segment sizes, denoted in bytes, is being read in from 
+   *   the file specified at program start.
    * - The log files are being initialised.
    *
-   * After these initialisations, which take place at object creation, a TCP connection to the server is initiated and the callbacks for a succeeded connection and for receiving are set. Then, the controller does the transition initial init-> downloading by calling RequestRepIndex (), thus obtaining the next representation level to be downloaded. The client then requests the determined segment size from the server by sending it a string composed of the number of bytes of the segment. After the request is processed by the server, it starts sending the first TCP packet to the client. The receiving of a packet notifies the socket that new data is available to be read, so the aforementioned SetRcvCallback is triggered and the client stars receiving packets. Meanwhile all arrived packets are being logged. This is repeated until the received amount of data matches the requested segment size. Then, the throughput is logged and the receive function calls the controller with the event  downloadFinished.
-   * The controller then adds a segment to the buffer and calls the PlaybackHandle() function. Here, the segment buffer is decremented by one segment, thus simulating the beginning of playback. Then, the function returns to the controller, where a timer of m_segmentDuration microseconds is set to call PlaybackHandle() again, after playback of the prior segment is finished. Next, the requests the next segment as described before. Therefore, the controller does the transition downloading downloadfinished-> downloadingPlaying.
+   * After these initialisations, which take place at object creation, a TCP connection to the server is 
+   * initiated and the callbacks for a succeeded connection and for receiving are set. Then, the controller 
+   * does the transition initial init-> downloading by calling RequestRepIndex (), thus obtaining the next 
+   * representation level to be downloaded. The client then requests the determined segment size from the 
+   * server by sending it a string composed of the number of bytes of the segment. After the request is 
+   * processed by the server, it starts sending the first TCP packet to the client. The receiving of a packet 
+   * notifies the socket that new data is available to be read, so the aforementioned SetRcvCallback is 
+   * triggered and the client stars receiving packets. Meanwhile all arrived packets are being logged. This is 
+   * repeated until the received amount of data matches the requested segment size. Then, the throughput is logged 
+   * and the receive function calls the controller with the event  downloadFinished.
+   * 
+   * The controller then adds a segment to the buffer and calls the PlaybackHandle() function. Here, the 
+   * segment buffer is decremented by one segment, thus simulating the beginning of playback. Then, the function
+   * returns to the controller, where a timer of m_segmentDuration microseconds is set to call PlaybackHandle() again,
+   *  after playback of the prior segment is finished. Next, the requests the next segment as described before. 
+   * Therefore, the controller does the transition downloading downloadfinished-> downloadingPlaying.
 
    * Now being in state downloadingPlaying, the next possible transitions are
-   * - downloadingPlaying downloadFinished-> downloadingPlaying: download of a segment is finished. The download of the next segment is started.
-   * - downloadingPlaying playbackFinished-> downloadingPlaying: playback of a segment is finished. The controller calls PlaybackHandle(), which happens through the beforehand set timer; if the number of segments in the buffer is > 0, the segment buffer is decremented by 1, and the timer is set to call PlaybackHandle() in m_segmentDuration microseconds.
-   * - downloadingPlaying downloadFinished-> playing: download of a segment is finished. The controller will request the next representation level from the adaptation algorithm. If m_bDelay > 0, the controller delays the download of the next segment by m_bDelay. Streaming session is now performing playback only.
-   * - downloadingPlaying playbackFinished-> downloading: playback of a segment is finished. This event is triggered by the beforehand set timer. The controller calls PlaybackHandle(); if the number of segments in the buffer is == 0, a buffer underrun is logged.
-   * - downloadingPlaying downloadFinished-> playing: download of the last segment is finished. Playback of the remaining segment(s) in the buffer continues. After finishing playback of all remaining segments in the buffer, playing playbackFinished-> terminal is performed, thus closing the client's socket, the streaming session for this client ends.
-   * Assuming that a buffer underrun has just been encountered and the client is currently in state downloading, the client is currently busy downloading the next segment. After the segment is fully downloaded, the controller is notified, PlaybackHandle() is called, thus starting the playback of the just downloaded segment and the transition downloading downloadFinished-> downloadingPlaying is performed. If the just downloaded segment (after the buffer underrun) was the streaming session's last segment, downloading downloadFinished-> playing is performed, the last segment is played and playing playbackFinished-> terminal is performed, as explained before.
+   * - downloadingPlaying downloadFinished-> downloadingPlaying: download of a segment is finished. 
+   *    The download of the next segment is started.
+   * 
+   * - downloadingPlaying playbackFinished-> downloadingPlaying: playback of a segment is finished. 
+   *      The controller calls PlaybackHandle(), which happens through the beforehand set timer; if the number of segments 
+   *      in the buffer is > 0, the segment buffer is decremented by 1, and the timer is set to call PlaybackHandle() in 
+   *      m_segmentDuration microseconds.
+   * 
+   * - downloadingPlaying downloadFinished-> playing: download of a segment is finished. 
+   *      The controller will request the next representation level from the adaptation algorithm. If m_bDelay > 0, 
+   *      the controller delays the download of the next segment by m_bDelay. Streaming session is now performing playback only.
+   * 
+   * - downloadingPlaying playbackFinished-> downloading: playback of a segment is finished. This event is triggered by 
+   *      the beforehand set timer. The controller calls PlaybackHandle(); if the number of segments in the buffer is == 0, 
+   *      a buffer underrun is logged.
+   * 
+   * - downloadingPlaying downloadFinished-> playing: download of the last segment is finished. 
+   *      Playback of the remaining segment(s) in the buffer continues. After finishing playback of all remaining segments in
+   *      the buffer, playing playbackFinished-> terminal is performed, thus closing the client's socket, the streaming session 
+   *      for this client ends.
+   * 
+   * Assuming that a buffer underrun has just been encountered and the client is currently in state downloading, the client is currently busy
+   * downloading the next segment. After the segment is fully downloaded, the controller is notified, PlaybackHandle() is called, thus starting 
+   * the playback of the just downloaded segment and the transition downloading downloadFinished-> downloadingPlaying is performed. If the just 
+   * downloaded segment (after the buffer underrun) was the streaming session's last segment, downloading downloadFinished-> playing is performed, 
+   * the last segment is played and playing playbackFinished-> terminal is performed, as explained before.
    */
   void Controller (controllerEvent action);
+
   /**
    * Set the data fill of the packet (what is actually sent as data to the server with m_data) to
    * the zero-terminated contents of the T & message string.
@@ -283,18 +320,24 @@ private:
    */
   std::string LogFileName(const std::string& simId, const std::string& clientId, const std::string& logSuffix);
 
+  // Packets
   uint32_t m_dataSize; //!< packet payload size
   uint8_t *m_data; //!< packet payload data
 
+  // Local and remote addresses
   Ptr<Socket> m_socket; //!< Socket
   Address m_peerAddress; //!< Remote peer address
   uint16_t m_peerPort; //!< Remote peer port
 
+  // Configuration
   uint16_t m_clientId; //!< The Id of this client, for logging purposes
   uint16_t m_simulationId; //!< The Id of this simulation, for logging purposes
   uint16_t m_numberOfClients; //!< The total number of clients for this simulation, for logging purposes
   std::string m_segmentSizeFilePath; //!< The relative path (from ns-3.x directory) to the file containing the segment sizes in bytes
   std::string m_algoName;//!< Name of the apation algorithm's class which this client will use for the simulation
+  uint64_t m_segmentDuration; //!< The duration of a segment in microseconds
+
+  // Actual streaming state
   bool m_bufferUnderrun; //!< True if there is currently a buffer underrun in the simulated playback
   int64_t m_currentPlaybackIndex; //!< The index of the segment that is currently being played
   int64_t m_segmentsInBuffer; //!< The number of segments that are currently in the buffer
@@ -306,8 +349,8 @@ private:
   int64_t m_bytesReceived; //!< Counts the amount of received bytes of the current packet
   int64_t m_bDelay;  //!< Minimum buffer level in microseconds of playback when the next download must be started
   int64_t m_highestRepIndex; //!< This is the index of the highest representation
-  uint64_t m_segmentDuration; //!< The duration of a segment in microseconds
 
+  // QoS logs and logging data
   std::ofstream adaptationLog; //!< Output stream for logging adaptation information
   std::ofstream downloadLog; //!< Output stream for logging download information
   std::ofstream playbackLog; //!< Output stream for logging playback information
