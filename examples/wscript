@@ -1,5 +1,6 @@
 # -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
 
 def build(bld):
-    obj = bld.create_ns3_program('simple-tcp-streaming', ['core', 'dash', 'internet', 'applications', 'point-to-point'])
-    obj.source = 'simple-tcp-streaming.cc'
+    pass
+    # obj = bld.create_ns3_program('simple-tcp-streaming', ['core', 'dash', 'internet', 'applications', 'point-to-point'])
+    # obj.source = 'simple-tcp-streaming.cc'

@@ -39,6 +39,8 @@ One possible execution of the benchmarking program would be:
 ./waf --run="simple-tcp-streaming --simulationId=2 --adaptationAlgo=festive --segmentDuration=2000000 --segmentSizeFile=contrib/dash/segmentSizes.txt"
 ```
 
+The benchmarking program has been included in the accompanying NS-3 repo fork to allow debugging and running it in VS Code.
+
 ## ADDING NEW ADAPTATION ALGORITHMS
 The adaptation algorithm base class is located in src/applications/model/adaptation-algorithm/. If it is desired to implement a new adaptation algorithm, a separate source and header file for the algorithm can be created in the adaptation-algorithm/ folder. An example of how a header file looks like can be seen here:
 
