@@ -263,6 +263,8 @@ TcpStreamClient::Initialise (std::string algorithm, uint16_t clientId)
       Simulator::Destroy ();
     }
 
+  NS_LOG_INFO("Video data: " << m_lastSegmentIndex + 1 << " segments with " << m_highestRepIndex + 1 << " quality levels");
+
   m_algoName = algorithm;
 
   InitializeLogFiles (ToString (m_simulationId), ToString (m_clientId), ToString (m_numberOfClients));
@@ -484,6 +486,11 @@ TcpStreamClient::StartApplication (void)
       else if (Ipv6Address::IsMatchingType (m_peerAddress) == true)
         {
           m_socket->Connect (Inet6SocketAddress (Ipv6Address::ConvertFrom (m_peerAddress), m_peerPort));
+        }
+      else 
+        {
+          NS_LOG_ERROR("Peer address is neither IPv4 nor IPv6. Cannot make socket connection.");
+          throw std::runtime_error("Failed to recognize address type.");
         }
       m_socket->SetConnectCallback (
         MakeCallback (&TcpStreamClient::ConnectionSucceeded, this),
