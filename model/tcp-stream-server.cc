@@ -132,44 +132,85 @@ TcpStreamServer::HandleRead (Ptr<Socket> socket)
   Address from;
   packet = socket->RecvFrom (from);
   int64_t packetSizeToReturn = GetCommand (packet);
+
+  NS_LOG_LOGIC("Server received request for segment " << m_callbackData [from].currentSegmentIndex << " of size " << packetSizeToReturn);
+
+  if (m_callbackData [from].send || m_callbackData [from].currentTxBytes > 0) {
+    NS_ABORT_MSG("Server received request from " << from << " before previous one was completed");
+  }
+
   // these values will be accessible by the clients Address from.
   m_callbackData [from].currentTxBytes = 0;
   m_callbackData [from].packetSizeToReturn = packetSizeToReturn;
   m_callbackData [from].send = true;
 
   HandleSend (socket, socket->GetTxAvailable ());
-
 }
 
 void
 TcpStreamServer::HandleSend (Ptr<Socket> socket, uint32_t txSpace)
 {
+  NS_LOG_FUNCTION (this << socket);
+
   Address from;
   socket->GetPeerName (from);
   // look up values for the connected client and whose values are stored in from
-  if (m_callbackData [from].currentTxBytes == m_callbackData [from].packetSizeToReturn)
+  if (m_callbackData [from].currentTxBytes > m_callbackData [from].packetSizeToReturn) {
+    NS_ABORT_MSG("Server has sent more data than required for the current segment.");
+  } 
+  else if (! m_callbackData [from].send) 
     {
+      NS_ASSERT( m_callbackData [from].currentTxBytes == 0 );
+      NS_LOG_LOGIC("Nothing to send. Current segment (" << (int)(m_callbackData [from].currentSegmentIndex) - 1 << ") marked as complete.");
+    }
+  else if (m_callbackData [from].currentTxBytes == m_callbackData [from].packetSizeToReturn)
+    {
+      NS_LOG_LOGIC("Marking current segment (" << (int)(m_callbackData [from].currentSegmentIndex) << ") as completed in server.");
+
       m_callbackData [from].currentTxBytes = 0;
       m_callbackData [from].packetSizeToReturn = 0;
       m_callbackData [from].send = false;
+      m_callbackData [from].currentSegmentIndex++;
+
       return;
     }
-  if (socket->GetTxAvailable () > 0 && m_callbackData [from].send)
+  else if (txSpace > 0)
     {
-      int32_t toSend;
-      toSend = std::min (socket->GetTxAvailable (), m_callbackData [from].packetSizeToReturn - m_callbackData [from].currentTxBytes);
-      Ptr<Packet> packet = Create<Packet> (toSend);
-      int amountSent = socket->Send (packet, 0);
+      // Determine the amount of data we should send.
+      // TODO it looks like QUIC's available() query only looks at the socket buffer, 
+      //      but if the stream buffer cannot accomodate the new bytes, we won't be able to send
+      //      the number of bytes which it claims to be available.
+      long toSend;
+      uint32_t remainingSegmentBytes = m_callbackData [from].packetSizeToReturn - m_callbackData [from].currentTxBytes;
+      toSend = std::min (txSpace, remainingSegmentBytes);
+
+      // Fill the packet with the current segment number so we can easily see
+      // what is happening in Wireshark.
+      uint8_t* packetData = new uint8_t [toSend];
+      uint8_t currentSegmentBytesFiller = (uint8_t)(m_callbackData [from].currentSegmentIndex);
+      std::fill(packetData, packetData + toSend, currentSegmentBytesFiller);
+      Ptr<Packet> packet = Create<Packet> (packetData, toSend);
+
+      NS_ASSERT (packet->GetSize() == toSend);
+      NS_LOG_LOGIC("Server attempting to send " << toSend << " bytes. Tx space is " << txSpace);
+
+      int amountSent = socket->Send (packet, 1); // Send only on stream 1
       if (amountSent > 0)
         {
+          NS_LOG_LOGIC("Server sent " << amountSent << " bytes");
           m_callbackData [from].currentTxBytes += amountSent;
         }
-      // We exit this part, when no bytes have been sent, as the send side buffer is full.
-      // The "HandleSend" callback will fire when some buffer space has freed up.
       else
         {
+          // We exit this part, when no bytes have been sent, as the send side buffer is full.
+          // The "HandleSend" callback will fire when some buffer space has freed up.
+          NS_LOG_LOGIC("Server send operation failed due to full send-side buffer.");
           return;
         }
+    }
+  else 
+    {
+      NS_LOG_LOGIC("Tx Socket Buffer Full. Send failed.");
     }
 }
 
@@ -181,6 +222,7 @@ TcpStreamServer::HandleAccept (Ptr<Socket> s, const Address& from)
   cbd.currentTxBytes = 0;
   cbd.packetSizeToReturn = 0;
   cbd.send = false;
+  cbd.currentSegmentIndex = 0;
   m_callbackData [from] = cbd;
   m_connectedClients.push_back (from);
   s->SetRecvCallback ( MakeCallback (&TcpStreamServer::HandleRead, this));

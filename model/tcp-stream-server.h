@@ -46,6 +46,7 @@ class PropagationDelayModel;
  */
 struct callbackData
 {
+  uint32_t currentSegmentIndex; //!< Index of video segment currently being transmitted
   uint32_t currentTxBytes;//!< already sent bytes for this particular segment, set to 0 if sent bytes == packetSizeToReturn, so transmission for this segment is over
   uint32_t packetSizeToReturn;//!< total amount of bytes that have to be returned to the client
   bool send;//!< true as long as there are still bytes left to be sent for the current segment

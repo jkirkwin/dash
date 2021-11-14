@@ -329,11 +329,37 @@ TcpStreamClient::HandleRead (Ptr<Socket> socket)
   while ( (packet = socket->Recv ()) )
     {
       packetSize = packet->GetSize ();
-      LogThroughput (packetSize);
-      m_bytesReceived += packetSize;
-      if (m_bytesReceived == m_videoData.segmentSize.at (m_currentRepIndex).at (m_segmentCounter))
+
+      auto remainingBytesInSegment = m_videoData.segmentSize.at (m_currentRepIndex).at (m_segmentCounter) - m_bytesReceived;
+      NS_LOG_LOGIC ("Client received packet containing " << packetSize << " bytes. " << remainingBytesInSegment << " more bytes in segment.");
+
+      // Validate that the data we got is for the correct segment.
+      uint8_t* packetBuff = new uint8_t [packetSize];
+      auto bytesCopied = packet->CopyData(packetBuff, packetSize);
+      NS_ASSERT_MSG(bytesCopied == packetSize, "Packet data size does not match reported packet size");
+      uint8_t expectedSegmentByte = static_cast<uint8_t>(m_segmentCounter);
+      uint32_t badCount {0};
+      std::cout << "Checking data chunk for segment has filler value " << (int) expectedSegmentByte << std::endl;
+      for (uint i = 0; i < packetSize; ++i) {
+          auto b = packetBuff[i];
+          if (b != expectedSegmentByte) {
+            ++badCount;
+            NS_LOG_ERROR("Bad filler value for segment data. Expected " << std::to_string (m_segmentCounter) << ". Received " + std::to_string((int)b));
+          }
+      }
+
+      uint32_t goodCount = packetSize - badCount;
+
+      LogThroughput (goodCount);
+      m_bytesReceived += goodCount;
+      auto currentSegmentSize = m_videoData.segmentSize.at (m_currentRepIndex).at (m_segmentCounter);
+      if (m_bytesReceived == currentSegmentSize)
         {
           SegmentReceivedHandle ();
+        }
+      else if (m_bytesReceived > currentSegmentSize) 
+        {
+          throw std::runtime_error("Error: Client received more bytes than can fit in current segment.");
         }
     }
 }
