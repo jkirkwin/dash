@@ -105,9 +105,9 @@ private:
    * bytes to the client until he requests another segment.
    *
    * \param socket the socket the request for a segment was received to and where the server will send packetSizeToReturn bytes to.
-   * \param packetSizeToReturn the full segment size in bytes that has to be returned to the client
+   * \param txSpace the available space in the Tx buffer
    */
-  void HandleSend (Ptr<Socket> socket, uint32_t packetSizeToReturn);
+  void HandleSend (Ptr<Socket> socket, uint32_t txSpace);
 
   /**
    * \brief Set callback functions for receive and send.
@@ -138,8 +138,6 @@ private:
   Ptr<Socket> m_socket6; //!< IPv6 Socket
   std::map <Address, callbackData> m_callbackData; //!< With this it is possible to access the currentTxBytes, the packetSizeToReturn and the send boolean through the from value of the client.
   std::vector<Address> m_connectedClients; //!< Vector which holds the list of currently connected clients.
-
-
 };
 
 } // namespace ns3

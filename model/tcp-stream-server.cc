@@ -144,6 +144,8 @@ TcpStreamServer::HandleRead (Ptr<Socket> socket)
   m_callbackData [from].packetSizeToReturn = packetSizeToReturn;
   m_callbackData [from].send = true;
 
+  // Manually invoke the send callback. The callback will repeatedly be 
+  // called by the socket as Tx space opens up following this call. 
   HandleSend (socket, socket->GetTxAvailable ());
 }
 
@@ -267,6 +269,7 @@ TcpStreamServer::HandleConnectionRequest (Ptr<Socket> socket, const Address& fro
 int64_t
 TcpStreamServer::GetCommand (Ptr<Packet> packet)
 {
+  NS_LOG_FUNCTION(this << packet);
   int64_t packetSizeToReturn;
   uint8_t *buffer = new uint8_t [packet->GetSize ()];
   packet->CopyData (buffer, packet->GetSize ());
