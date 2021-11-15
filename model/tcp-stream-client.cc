@@ -339,7 +339,7 @@ TcpStreamClient::HandleRead (Ptr<Socket> socket)
       NS_ASSERT_MSG(bytesCopied == packetSize, "Packet data size does not match reported packet size");
       uint8_t expectedSegmentByte = static_cast<uint8_t>(m_segmentCounter);
       uint32_t badCount {0};
-      std::cout << "Checking data chunk for segment has filler value " << (int) expectedSegmentByte << std::endl;
+      NS_LOG_LOGIC("Checking data chunk for segment has filler value " << (int) expectedSegmentByte);
       for (uint i = 0; i < packetSize; ++i) {
           auto b = packetBuff[i];
           if (b != expectedSegmentByte) {

@@ -133,7 +133,7 @@ TcpStreamServer::HandleRead (Ptr<Socket> socket)
   packet = socket->RecvFrom (from);
   int64_t packetSizeToReturn = GetCommand (packet);
 
-  NS_LOG_LOGIC("Server received request for segment " << m_callbackData [from].currentSegmentIndex << " of size " << packetSizeToReturn);
+  NS_LOG_INFO("Server received request for segment " << m_callbackData [from].currentSegmentIndex << " of size " << packetSizeToReturn);
 
   if (m_callbackData [from].send || m_callbackData [from].currentTxBytes > 0) {
     NS_ABORT_MSG("Server received request from " << from << " before previous one was completed");
@@ -152,7 +152,9 @@ TcpStreamServer::HandleRead (Ptr<Socket> socket)
 void
 TcpStreamServer::HandleSend (Ptr<Socket> socket, uint32_t txSpace)
 {
-  NS_LOG_FUNCTION (this << socket);
+  NS_LOG_FUNCTION (this << socket << txSpace);
+
+  // TODO try checking against the stream buffer available space too
 
   Address from;
   socket->GetPeerName (from);
@@ -167,7 +169,7 @@ TcpStreamServer::HandleSend (Ptr<Socket> socket, uint32_t txSpace)
     }
   else if (m_callbackData [from].currentTxBytes == m_callbackData [from].packetSizeToReturn)
     {
-      NS_LOG_LOGIC("Marking current segment (" << (int)(m_callbackData [from].currentSegmentIndex) << ") as completed in server.");
+      NS_LOG_INFO("Marking current segment (" << (int)(m_callbackData [from].currentSegmentIndex) << ") as completed in server.");
 
       m_callbackData [from].currentTxBytes = 0;
       m_callbackData [from].packetSizeToReturn = 0;
@@ -199,20 +201,20 @@ TcpStreamServer::HandleSend (Ptr<Socket> socket, uint32_t txSpace)
       int amountSent = socket->Send (packet, 1); // Send only on stream 1
       if (amountSent > 0)
         {
-          NS_LOG_LOGIC("Server sent " << amountSent << " bytes");
+          NS_LOG_INFO("Server sent " << amountSent << " bytes");
           m_callbackData [from].currentTxBytes += amountSent;
         }
       else
         {
           // We exit this part, when no bytes have been sent, as the send side buffer is full.
           // The "HandleSend" callback will fire when some buffer space has freed up.
-          NS_LOG_LOGIC("Server send operation failed due to full send-side buffer.");
+          NS_LOG_WARN("Server send operation failed due to full send-side buffer.");
           return;
         }
     }
   else 
     {
-      NS_LOG_LOGIC("Tx Socket Buffer Full. Send failed.");
+      NS_LOG_WARN("Tx Socket Buffer Full. Send failed.");
     }
 }
 
