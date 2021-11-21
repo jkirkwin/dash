@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef TCP_STREAM_CLIENT_H
-#define TCP_STREAM_CLIENT_H
+#ifndef STREAM_CLIENT_H
+#define STREAM_CLIENT_H
 
 #include "ns3/application.h"
 #include "ns3/event-id.h"
@@ -39,12 +39,12 @@ class Socket;
 class Packet;
 
 /**
- * \ingroup tcpStream
- * \brief A Tcp Stream client
+ * \ingroup dashStream
+ * \brief A DASH streaming client
  *
  * Every segment size request sent is returned by the server and received here.
  */
-class TcpStreamClient : public Application
+class StreamClient : public Application
 {
 
 public:
@@ -53,8 +53,8 @@ public:
    * \return the object TypeId
    */
   static TypeId GetTypeId (void);
-  TcpStreamClient ();
-  virtual ~TcpStreamClient ();
+  StreamClient ();
+  virtual ~StreamClient ();
 
   /**
    * \brief Set the adaptation algorithm which this client instance should use.
@@ -133,12 +133,12 @@ private:
    *   the file specified at program start.
    * - The log files are being initialised.
    *
-   * After these initialisations, which take place at object creation, a TCP connection to the server is 
+   * After these initialisations, which take place at object creation, a TCP or QUIC connection to the server is 
    * initiated and the callbacks for a succeeded connection and for receiving are set. Then, the controller 
    * does the transition initial init-> downloading by calling RequestRepIndex (), thus obtaining the next 
    * representation level to be downloaded. The client then requests the determined segment size from the 
    * server by sending it a string composed of the number of bytes of the segment. After the request is 
-   * processed by the server, it starts sending the first TCP packet to the client. The receiving of a packet 
+   * processed by the server, it starts sending the first data packet to the client. The receiving of a packet 
    * notifies the socket that new data is available to be read, so the aforementioned SetRcvCallback is 
    * triggered and the client stars receiving packets. Meanwhile all arrived packets are being logged. This is 
    * repeated until the received amount of data matches the requested segment size. Then, the throughput is logged 
@@ -281,7 +281,7 @@ private:
   void LogBuffer ();
 
   /*
-   * \brief Log throughput information about single arriving TCP packets
+   * \brief Log throughput information about single arriving packets
    *
    * - arrival time of packet
    * - size of packet
@@ -310,7 +310,7 @@ private:
   /*
    * \brief Open log output files with streams.
    *
-   * The output streams defined in TcpStreamClient are opened,
+   * The output streams defined in StreamClient are opened,
    * and log files containing the used adaptation algorithm are created for output.
    */
   void InitializeLogFiles (std::string simulationId, std::string clientId, std::string numberOfClients);
@@ -336,6 +336,7 @@ private:
   std::string m_segmentSizeFilePath; //!< The relative path (from ns-3.x directory) to the file containing the segment sizes in bytes
   std::string m_algoName;//!< Name of the apation algorithm's class which this client will use for the simulation
   uint64_t m_segmentDuration; //!< The duration of a segment in microseconds
+  std::string m_protocolName; //!< The name of the transport protocol to be used (QUIC or TCP)
 
   // Actual streaming state
   bool m_bufferUnderrun; //!< True if there is currently a buffer underrun in the simulated playback
@@ -369,4 +370,4 @@ private:
 
 } // namespace ns3
 
-#endif /* TCP_STREAM_CLIENT_H */
+#endif /* STREAM_CLIENT_H */

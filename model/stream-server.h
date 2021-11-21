@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef TCP_STREAM_SERVER_H
-#define TCP_STREAM_SERVER_H
+#ifndef STREAM_SERVER_H
+#define STREAM_SERVER_H
 
 #include "ns3/application.h"
 #include "ns3/event-id.h"
@@ -37,11 +37,11 @@ class PropagationDelayModel;
 
 /**
  * \ingroup applications
- * \defgroup tcpStream TcpStream
+ * \defgroup dashStream DashStream
  */
 
 /**
- * \ingroup tcpStream
+ * \ingroup dashStream
  * \brief data strucute the server uses to manage the following data for every client separately.
  */
 struct callbackData
@@ -53,12 +53,12 @@ struct callbackData
 };
 
 /**
- * \ingroup tcpStream
- * \brief A Tcp Stream server
+ * \ingroup dashStream
+ * \brief A DASH Stream server
  *
  * Clients sent messages with the amount of bytes they want the server to return to them.
  */
-class TcpStreamServer : public Application
+class StreamServer : public Application
 {
 public:
   /**
@@ -66,8 +66,8 @@ public:
    * \return the object TypeId
    */
   static TypeId GetTypeId (void);
-  TcpStreamServer ();
-  virtual ~TcpStreamServer ();
+  StreamServer ();
+  virtual ~StreamServer ();
 
 protected:
   virtual void DoDispose (void);
@@ -138,9 +138,10 @@ private:
   Ptr<Socket> m_socket6; //!< IPv6 Socket
   std::map <Address, callbackData> m_callbackData; //!< With this it is possible to access the currentTxBytes, the packetSizeToReturn and the send boolean through the from value of the client.
   std::vector<Address> m_connectedClients; //!< Vector which holds the list of currently connected clients.
+  std::string m_protocolName; //!< The name of the transport protocol to be used (TCP or QUIC)
 };
 
 } // namespace ns3
 
-#endif /* TCP_STREAM_SERVER_H */
+#endif /* STREAM_SERVER_H */
 

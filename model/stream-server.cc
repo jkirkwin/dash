@@ -24,45 +24,48 @@
 #include "ns3/inet-socket-address.h"
 #include "ns3/inet6-socket-address.h"
 #include "ns3/socket.h"
-#include "ns3/tcp-socket.h"
 #include "ns3/simulator.h"
 #include "ns3/socket-factory.h"
 #include "ns3/packet.h"
 #include "ns3/uinteger.h"
-#include "ns3/tcp-socket-factory.h"
-#include "tcp-stream-server.h"
+#include "stream-server.h"
 #include "ns3/global-value.h"
 #include <ns3/core-module.h>
-#include "tcp-stream-client.h"
 #include "ns3/trace-source-accessor.h"
+#include "stream-utils.h"
 
 namespace ns3 {
 
-NS_LOG_COMPONENT_DEFINE ("TcpStreamServerApplication");
+NS_LOG_COMPONENT_DEFINE ("StreamServerApplication");
 
-NS_OBJECT_ENSURE_REGISTERED (TcpStreamServer);
+NS_OBJECT_ENSURE_REGISTERED (StreamServer);
 
 TypeId
-TcpStreamServer::GetTypeId (void)
+StreamServer::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::TcpStreamServer")
+  static TypeId tid = TypeId ("ns3::StreamServer")
     .SetParent<Application> ()
     .SetGroupName ("Applications")
-    .AddConstructor<TcpStreamServer> ()
+    .AddConstructor<StreamServer> ()
     .AddAttribute ("Port", "Port on which we listen for incoming packets.",
                    UintegerValue (9),
-                   MakeUintegerAccessor (&TcpStreamServer::m_port),
+                   MakeUintegerAccessor (&StreamServer::m_port),
                    MakeUintegerChecker<uint16_t> ())
+    .AddAttribute ("TransportProtocol", 
+                   "The transport protocol used to communicate with clients",
+                   StringValue ("QUIC"),
+                   MakeStringAccessor (&StreamServer::m_protocolName),
+                   MakeStringChecker ())
   ;
   return tid;
 }
 
-TcpStreamServer::TcpStreamServer ()
+StreamServer::StreamServer ()
 {
   NS_LOG_FUNCTION (this);
 }
 
-TcpStreamServer::~TcpStreamServer ()
+StreamServer::~StreamServer ()
 {
   NS_LOG_FUNCTION (this);
   m_socket = 0;
@@ -70,21 +73,25 @@ TcpStreamServer::~TcpStreamServer ()
 }
 
 void
-TcpStreamServer::DoDispose (void)
+StreamServer::DoDispose (void)
 {
   NS_LOG_FUNCTION (this);
   Application::DoDispose ();
 }
 
 void
-TcpStreamServer::StartApplication (void)
+StreamServer::StartApplication (void)
 {
   NS_LOG_FUNCTION (this);
 
+  // Create a TCP or QUIC socket depending on how the client is configured.
+  NS_LOG_INFO ("Creating " << m_protocolName << " socket");  
+  std::string socketFactoryName = GetSocketFactoryNameFromProtocol (m_protocolName);
+  auto socketTid = TypeId::LookupByName (socketFactoryName);
+
   if (m_socket == 0)
     {
-      TypeId tid = TypeId::LookupByName ("ns3::QuicSocketFactory");
-      m_socket = Socket::CreateSocket (GetNode (), tid);
+      m_socket = Socket::CreateSocket (GetNode (), socketTid);
       InetSocketAddress local = InetSocketAddress (Ipv4Address::GetAny (), m_port);
       m_socket->Bind (local);
       m_socket->Listen ();
@@ -92,23 +99,22 @@ TcpStreamServer::StartApplication (void)
 
   if (m_socket6 == 0)
     {
-      TypeId tid = TypeId::LookupByName ("ns3::QuicSocketFactory");
-      m_socket6 = Socket::CreateSocket (GetNode (), tid);
+      m_socket6 = Socket::CreateSocket (GetNode (), socketTid);
       Inet6SocketAddress local6 = Inet6SocketAddress (Ipv6Address::GetAny (), m_port);
       m_socket6->Bind (local6);
       m_socket->Listen ();
     }
 
   // Accept connection requests from remote hosts.
-  m_socket->SetAcceptCallback (MakeCallback (&TcpStreamServer::HandleConnectionRequest, this),
-                               MakeCallback (&TcpStreamServer::HandleAccept, this));
+  m_socket->SetAcceptCallback (MakeCallback (&StreamServer::HandleConnectionRequest, this),
+                               MakeCallback (&StreamServer::HandleAccept, this));
   m_socket->SetCloseCallbacks (
-    MakeCallback (&TcpStreamServer::HandlePeerClose, this),
-    MakeCallback (&TcpStreamServer::HandlePeerError, this));
+    MakeCallback (&StreamServer::HandlePeerClose, this),
+    MakeCallback (&StreamServer::HandlePeerError, this));
 }
 
 void
-TcpStreamServer::StopApplication ()
+StreamServer::StopApplication ()
 {
   NS_LOG_FUNCTION (this);
 
@@ -125,7 +131,7 @@ TcpStreamServer::StopApplication ()
 }
 
 void
-TcpStreamServer::HandleRead (Ptr<Socket> socket)
+StreamServer::HandleRead (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
   Ptr<Packet> packet;
@@ -150,7 +156,7 @@ TcpStreamServer::HandleRead (Ptr<Socket> socket)
 }
 
 void
-TcpStreamServer::HandleSend (Ptr<Socket> socket, uint32_t txSpace)
+StreamServer::HandleSend (Ptr<Socket> socket, uint32_t txSpace)
 {
   NS_LOG_FUNCTION (this << socket << txSpace);
 
@@ -198,7 +204,14 @@ TcpStreamServer::HandleSend (Ptr<Socket> socket, uint32_t txSpace)
       NS_ASSERT (packet->GetSize() == toSend);
       NS_LOG_LOGIC("Server attempting to send " << toSend << " bytes. Tx space is " << txSpace);
 
-      int amountSent = socket->Send (packet, 1); // Send only on stream 1
+      int amountSent {0};
+      if (IsQuicString(m_protocolName)) {
+        amountSent = socket->Send (packet, 1); // Send only on stream 1
+      }
+      else {
+        amountSent = socket->Send (packet); // Don't use flags for TCP
+      }
+
       if (amountSent > 0)
         {
           NS_LOG_INFO("Server sent " << amountSent << " bytes");
@@ -219,7 +232,7 @@ TcpStreamServer::HandleSend (Ptr<Socket> socket, uint32_t txSpace)
 }
 
 void
-TcpStreamServer::HandleAccept (Ptr<Socket> s, const Address& from)
+StreamServer::HandleAccept (Ptr<Socket> s, const Address& from)
 {
   NS_LOG_FUNCTION (this << s << from);
   callbackData cbd;
@@ -229,12 +242,12 @@ TcpStreamServer::HandleAccept (Ptr<Socket> s, const Address& from)
   cbd.currentSegmentIndex = 0;
   m_callbackData [from] = cbd;
   m_connectedClients.push_back (from);
-  s->SetRecvCallback ( MakeCallback (&TcpStreamServer::HandleRead, this));
-  s->SetSendCallback ( MakeCallback (&TcpStreamServer::HandleSend, this));
+  s->SetRecvCallback ( MakeCallback (&StreamServer::HandleRead, this));
+  s->SetSendCallback ( MakeCallback (&StreamServer::HandleSend, this));
 }
 
 void
-TcpStreamServer::HandlePeerClose (Ptr<Socket> socket)
+StreamServer::HandlePeerClose (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
   Address from;
@@ -256,20 +269,20 @@ TcpStreamServer::HandlePeerClose (Ptr<Socket> socket)
 }
 
 void
-TcpStreamServer::HandlePeerError (Ptr<Socket> socket)
+StreamServer::HandlePeerError (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
 }
 
 bool 
-TcpStreamServer::HandleConnectionRequest (Ptr<Socket> socket, const Address& from)
+StreamServer::HandleConnectionRequest (Ptr<Socket> socket, const Address& from)
 {
   NS_LOG_FUNCTION (this << socket << from);
   return true; // Accept all requests
 }
 
 int64_t
-TcpStreamServer::GetCommand (Ptr<Packet> packet)
+StreamServer::GetCommand (Ptr<Packet> packet)
 {
   NS_LOG_FUNCTION(this << packet);
   int64_t packetSizeToReturn;

@@ -17,8 +17,8 @@
  *
  * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
  */
-#ifndef TCP_STREAM_HELPER_H
-#define TCP_STREAM_HELPER_H
+#ifndef STREAM_HELPER_H
+#define STREAM_HELPER_H
 
 #include <stdint.h>
 #include "ns3/application-container.h"
@@ -30,20 +30,20 @@
 namespace ns3 {
 
 /**
- * \ingroup TcpStream
+ * \ingroup dashStream
  * \brief Create a server application which waits for input UDP packets
  *        and sends them back to the original sender.
  */
-class TcpStreamServerHelper
+class StreamServerHelper
 {
 public:
   /**
-   * Create TcpStreamServerHelper which will make life easier for people trying
+   * Create StreamServerHelper which will make life easier for people trying
    * to set up simulations with echos.
    *
    * \param port The port the server will wait on for incoming packets
    */
-  TcpStreamServerHelper (uint16_t port);
+  StreamServerHelper (uint16_t port);
 
   /**
    * Record an attribute to be set in each Application after it is is created.
@@ -54,7 +54,7 @@ public:
   void SetAttribute (std::string name, const AttributeValue &value);
 
   /**
-   * Create a TcpStreamServerApplication on the specified Node.
+   * Create a StreamServerApplication on the specified Node.
    *
    * \param node The node on which to create the Application.  The node is
    *             specified by a Ptr<Node>.
@@ -64,7 +64,7 @@ public:
   ApplicationContainer Install (Ptr<Node> node) const;
 
   /**
-   * Create a TcpStreamServerApplication on specified node
+   * Create a StreamServerApplication on specified node
    *
    * \param nodeName The node on which to create the application.  The node
    *                 is specified by a node name previously registered with
@@ -78,7 +78,7 @@ public:
    * \param c The nodes on which to create the Applications.  The nodes
    *          are specified by a NodeContainer.
    *
-   * Create one tcp stream server application on each of the Nodes in the
+   * Create one stream server application on each of the Nodes in the
    * NodeContainer.
    *
    * \returns The applications created, one Application per Node in the 
@@ -88,10 +88,10 @@ public:
 
 private:
   /**
-   * Install an ns3::TcpStreamServer on the node configured with all the
+   * Install an ns3::StreamServer on the node configured with all the
    * attributes set with SetAttribute.
    *
-   * \param node The node on which an TcpStreamServer will be installed.
+   * \param node The node on which an StreamServer will be installed.
    * \returns Ptr to the application installed.
    */
   Ptr<Application> InstallPriv (Ptr<Node> node) const;
@@ -100,36 +100,36 @@ private:
 };
 
 /**
- * \ingroup TcpStream
+ * \ingroup dashStream
  * \brief Create an application which sends a UDP packet and waits for an echo of this packet
  */
-class TcpStreamClientHelper
+class StreamClientHelper
 {
 public:
   /**
-   * Create TcpStreamClientHelper which will make life easier for people trying
+   * Create StreamClientHelper which will make life easier for people trying
    * to set up simulations with echos.
    *
-   * \param ip The IP address of the remote tcp stream server
-   * \param port The port number of the remote tcp stream server
+   * \param ip The IP address of the remote stream server
+   * \param port The port number of the remote stream server
    */
-  TcpStreamClientHelper (Address ip, uint16_t port);
+  StreamClientHelper (Address ip, uint16_t port);
   /**
-   * Create TcpStreamClientHelper which will make life easier for people trying
+   * Create StreamClientHelper which will make life easier for people trying
    * to set up simulations with echos.
    *
-   * \param ip The IPv4 address of the remote tcp stream server
-   * \param port The port number of the remote tcp stream server
+   * \param ip The IPv4 address of the remote stream server
+   * \param port The port number of the remote stream server
    */
-  TcpStreamClientHelper (Ipv4Address ip, uint16_t port);
+  StreamClientHelper (Ipv4Address ip, uint16_t port);
   /**
-   * Create TcpStreamClientHelper which will make life easier for people trying
+   * Create StreamClientHelper which will make life easier for people trying
    * to set up simulations with echos.
    *
-   * \param ip The IPv6 address of the remote tcp stream server
-   * \param port The port number of the remote tcp stream server
+   * \param ip The IPv6 address of the remote stream server
+   * \param port The port number of the remote stream server
    */
-  TcpStreamClientHelper (Ipv6Address ip, uint16_t port);
+  StreamClientHelper (Ipv6Address ip, uint16_t port);
 
   /**
    * Record an attribute to be set in each Application after it is is created.
@@ -142,8 +142,8 @@ public:
   /**
    * \param clients the nodes with the name of the adaptation algorithm to be used
    *
-   * Create one tcp stream client application on each of the input nodes and
-   * instantiate an adaptation algorithm on each of the tcp stream client according
+   * Create one  stream client application on each of the input nodes and
+   * instantiate an adaptation algorithm on each of the stream client according
    * to the given string.
    *
    * \returns the applications created, one application per input node.
@@ -152,10 +152,10 @@ public:
 
 private:
   /**
-   * Install an ns3::TcpStreamClient on the node configured with all the
+   * Install an ns3::StreamClient on the node configured with all the
    * attributes set with SetAttribute.
    *
-   * \param node The node on which an TcpStreamClient will be installed.
+   * \param node The node on which an StreamClient will be installed.
    * \param algo A string containing the name of the adaptation algorithm to be used on this client
    * \param clientId distinguish this client object from other parallel running clients, for logging purposes
    * \param simulationId distinguish this simulation from other subsequently started simulations, for logging purposes
@@ -167,4 +167,4 @@ private:
 
 } // namespace ns3
 
-#endif /* TCP_STREAM_HELPER_H */
+#endif /* STREAM_HELPER_H */

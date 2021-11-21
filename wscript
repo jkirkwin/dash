@@ -4,26 +4,28 @@ def build(bld):
     module = bld.create_ns3_module('dash', ['internet','config-store','stats', 'quic'])
     module.includes = '.'
     module.source = [
-        'model/tcp-stream-client.cc',
-        'model/tcp-stream-server.cc',
+        'model/stream-client.cc',
+        'model/stream-server.cc',
         'model/tcp-stream-adaptation-algorithm.cc',
         'model/festive.cc',
         'model/panda.cc',
         'model/tobasco2.cc',
-        'helper/tcp-stream-helper.cc',
+        'helper/stream-helper.cc',
+        'model/stream-utils.cc',
         ]
 
     headers = bld(features='ns3header')
     headers.module = 'dash'
     headers.source = [
-        'model/tcp-stream-client.h',
-        'model/tcp-stream-server.h',
+        'model/stream-client.h',
+        'model/stream-server.h',
         'model/tcp-stream-interface.h',
         'model/tcp-stream-adaptation-algorithm.h',
         'model/festive.h',
         'model/panda.h',
         'model/tobasco2.h',
-        'helper/tcp-stream-helper.h',
+        'helper/stream-helper.h',
+        'model/stream-utils.h',
         ]
 
     if bld.env['ENABLE_EXAMPLES']:

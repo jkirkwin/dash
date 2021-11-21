@@ -27,7 +27,8 @@
 #include "ns3/packet.h"
 #include "ns3/uinteger.h"
 #include "ns3/trace-source-accessor.h"
-#include "tcp-stream-client.h"
+#include "stream-client.h"
+#include "stream-utils.h"
 #include <math.h>
 #include <sstream>
 #include <stdexcept>
@@ -54,12 +55,12 @@ std::string ToString (T val)
   return stream.str ();
 }
 
-NS_LOG_COMPONENT_DEFINE ("TcpStreamClientApplication");
+NS_LOG_COMPONENT_DEFINE ("StreamClientApplication");
 
-NS_OBJECT_ENSURE_REGISTERED (TcpStreamClient);
+NS_OBJECT_ENSURE_REGISTERED (StreamClient);
 
 void
-TcpStreamClient::Controller (controllerEvent event)
+StreamClient::Controller (controllerEvent event)
 {
   NS_LOG_FUNCTION (this << eventStrings.at (event) << stateStrings.at (state));
   if (state == initial)
@@ -87,7 +88,7 @@ TcpStreamClient::Controller (controllerEvent event)
           state = playing;
         }
       controllerEvent ev = playbackFinished;
-      Simulator::Schedule (MicroSeconds (m_videoData.segmentDuration), &TcpStreamClient::Controller, this, ev);
+      Simulator::Schedule (MicroSeconds (m_videoData.segmentDuration), &StreamClient::Controller, this, ev);
       return;
     }
 
@@ -107,7 +108,7 @@ TcpStreamClient::Controller (controllerEvent event)
               /*  e_dirs */
               state = playing;
               controllerEvent ev = irdFinished;
-              Simulator::Schedule (MicroSeconds (m_bDelay), &TcpStreamClient::Controller, this, ev);
+              Simulator::Schedule (MicroSeconds (m_bDelay), &StreamClient::Controller, this, ev);
             }
           else if (m_segmentCounter == m_lastSegmentIndex)
             {
@@ -126,7 +127,7 @@ TcpStreamClient::Controller (controllerEvent event)
             {
               /*  e_pb  */
               controllerEvent ev = playbackFinished;
-              Simulator::Schedule (MicroSeconds (m_videoData.segmentDuration), &TcpStreamClient::Controller, this, ev);
+              Simulator::Schedule (MicroSeconds (m_videoData.segmentDuration), &StreamClient::Controller, this, ev);
             }
           else
             {
@@ -152,7 +153,7 @@ TcpStreamClient::Controller (controllerEvent event)
           // std::cerr << "SECOND CASE. Client " << m_clientId << " " << Simulator::Now ().GetSeconds () << "\n";
           PlaybackHandle ();
           controllerEvent ev = playbackFinished;
-          Simulator::Schedule (MicroSeconds (m_videoData.segmentDuration), &TcpStreamClient::Controller, this, ev);
+          Simulator::Schedule (MicroSeconds (m_videoData.segmentDuration), &StreamClient::Controller, this, ev);
         }
       else if (event == playbackFinished && m_currentPlaybackIndex == m_lastSegmentIndex)
         {
@@ -167,52 +168,58 @@ TcpStreamClient::Controller (controllerEvent event)
 }
 
 TypeId
-TcpStreamClient::GetTypeId (void)
+StreamClient::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::TcpStreamClient")
+  static TypeId tid = TypeId ("ns3::StreamClient")
     .SetParent<Application> ()
     .SetGroupName ("Applications")
-    .AddConstructor<TcpStreamClient> ()
+    .AddConstructor<StreamClient> ()
+    .AddAttribute ("TransportProtocol",
+                   "The transport protocol to be used (either QUIC or TCP)",
+                   StringValue("QUIC"),
+                   MakeStringAccessor(&StreamClient::m_protocolName),
+                   MakeStringChecker()
+                   )
     .AddAttribute ("RemoteAddress",
                    "The destination Address of the outbound packets",
                    AddressValue (),
-                   MakeAddressAccessor (&TcpStreamClient::m_peerAddress),
+                   MakeAddressAccessor (&StreamClient::m_peerAddress),
                    MakeAddressChecker ())
     .AddAttribute ("RemotePort",
                    "The destination port of the outbound packets",
                    UintegerValue (0),
-                   MakeUintegerAccessor (&TcpStreamClient::m_peerPort),
+                   MakeUintegerAccessor (&StreamClient::m_peerPort),
                    MakeUintegerChecker<uint16_t> ())
     .AddAttribute ("SegmentDuration",
                    "The duration of a segment in microseconds",
                    UintegerValue (2000000),
-                   MakeUintegerAccessor (&TcpStreamClient::m_segmentDuration),
+                   MakeUintegerAccessor (&StreamClient::m_segmentDuration),
                    MakeUintegerChecker<uint64_t> ())
     .AddAttribute ("SegmentSizeFilePath",
                    "The relative path (from ns-3.x directory) to the file containing the segment sizes in bytes",
                    StringValue ("bitrates.txt"),
-                   MakeStringAccessor (&TcpStreamClient::m_segmentSizeFilePath),
+                   MakeStringAccessor (&StreamClient::m_segmentSizeFilePath),
                    MakeStringChecker ())
     .AddAttribute ("SimulationId",
                    "The ID of the current simulation, for logging purposes",
                    UintegerValue (0),
-                   MakeUintegerAccessor (&TcpStreamClient::m_simulationId),
+                   MakeUintegerAccessor (&StreamClient::m_simulationId),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("NumberOfClients",
                    "The total number of clients for this simulation, for logging purposes",
                    UintegerValue (1),
-                   MakeUintegerAccessor (&TcpStreamClient::m_numberOfClients),
+                   MakeUintegerAccessor (&StreamClient::m_numberOfClients),
                    MakeUintegerChecker<uint16_t> ())
     .AddAttribute ("ClientId",
                    "The ID of the this client object, for logging purposes",
                    UintegerValue (0),
-                   MakeUintegerAccessor (&TcpStreamClient::m_clientId),
+                   MakeUintegerAccessor (&StreamClient::m_clientId),
                    MakeUintegerChecker<uint32_t> ())
   ;
   return tid;
 }
 
-TcpStreamClient::TcpStreamClient ()
+StreamClient::StreamClient ()
 {
   NS_LOG_FUNCTION (this);
   m_socket = 0;
@@ -231,7 +238,7 @@ TcpStreamClient::TcpStreamClient ()
 }
 
 void
-TcpStreamClient::Initialise (std::string algorithm, uint16_t clientId)
+StreamClient::Initialise (std::string algorithm, uint16_t clientId)
 {
   NS_LOG_FUNCTION (this);
   m_videoData.segmentDuration = m_segmentDuration;
@@ -271,7 +278,7 @@ TcpStreamClient::Initialise (std::string algorithm, uint16_t clientId)
 
 }
 
-TcpStreamClient::~TcpStreamClient ()
+StreamClient::~StreamClient ()
 {
   NS_LOG_FUNCTION (this);
   m_socket = 0;
@@ -284,7 +291,7 @@ TcpStreamClient::~TcpStreamClient ()
 }
 
 void
-TcpStreamClient::RequestRepIndex ()
+StreamClient::RequestRepIndex ()
 {
   NS_LOG_FUNCTION (this << m_segmentCounter);
   algorithmReply answer;
@@ -305,7 +312,7 @@ TcpStreamClient::RequestRepIndex ()
 
 template <typename T>
 void
-TcpStreamClient::Send (T & message)
+StreamClient::Send (T & message)
 {
   NS_LOG_FUNCTION (this);
   PreparePacket (message);
@@ -313,11 +320,16 @@ TcpStreamClient::Send (T & message)
   p = Create<Packet> (m_data, m_dataSize);
   
   m_downloadRequestSent = Simulator::Now ().GetMicroSeconds ();
-  m_socket->Send (p, 1u); // Send requests on a single stream (with ID 1)
+  if (IsQuicString(m_protocolName)) {
+    m_socket->Send (p, 1u); // Send requests on a single stream (with ID 1)
+  }
+  else {
+    m_socket->Send(p); // For TCP, don't use the flags
+  }
 }
 
 void
-TcpStreamClient::HandleRead (Ptr<Socket> socket)
+StreamClient::HandleRead (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
   Ptr<Packet> packet;
@@ -365,7 +377,7 @@ TcpStreamClient::HandleRead (Ptr<Socket> socket)
 }
 
 int
-TcpStreamClient::ReadInBitrateValues (std::string segmentSizeFile)
+StreamClient::ReadInBitrateValues (std::string segmentSizeFile)
 {
   NS_LOG_FUNCTION (this);
   std::ifstream myfile;
@@ -394,7 +406,7 @@ TcpStreamClient::ReadInBitrateValues (std::string segmentSizeFile)
 }
 
 void
-TcpStreamClient::SegmentReceivedHandle ()
+StreamClient::SegmentReceivedHandle ()
 {
   NS_LOG_FUNCTION (this << m_segmentCounter);
   m_transmissionEndReceivingSegment = Simulator::Now ().GetMicroSeconds ();
@@ -434,7 +446,7 @@ TcpStreamClient::SegmentReceivedHandle ()
 }
 
 bool
-TcpStreamClient::PlaybackHandle ()
+StreamClient::PlaybackHandle ()
 {
   NS_LOG_FUNCTION (this << m_currentPlaybackIndex);
   int64_t timeNow = Simulator::Now ().GetMicroSeconds ();
@@ -467,7 +479,7 @@ TcpStreamClient::PlaybackHandle ()
 }
 
 void
-TcpStreamClient::SetRemote (Address ip, uint16_t port)
+StreamClient::SetRemote (Address ip, uint16_t port)
 {
   NS_LOG_FUNCTION (this << ip << port);
   m_peerAddress = ip;
@@ -475,7 +487,7 @@ TcpStreamClient::SetRemote (Address ip, uint16_t port)
 }
 
 void
-TcpStreamClient::SetRemote (Ipv4Address ip, uint16_t port)
+StreamClient::SetRemote (Ipv4Address ip, uint16_t port)
 {
   NS_LOG_FUNCTION (this << ip << port);
   m_peerAddress = Address (ip);
@@ -483,7 +495,7 @@ TcpStreamClient::SetRemote (Ipv4Address ip, uint16_t port)
 }
 
 void
-TcpStreamClient::SetRemote (Ipv6Address ip, uint16_t port)
+StreamClient::SetRemote (Ipv6Address ip, uint16_t port)
 {
   NS_LOG_FUNCTION (this << ip << port);
   m_peerAddress = Address (ip);
@@ -491,20 +503,25 @@ TcpStreamClient::SetRemote (Ipv6Address ip, uint16_t port)
 }
 
 void
-TcpStreamClient::DoDispose (void)
+StreamClient::DoDispose (void)
 {
   NS_LOG_FUNCTION (this);
   Application::DoDispose ();
 }
 
 void
-TcpStreamClient::StartApplication (void)
+StreamClient::StartApplication (void)
 {
   NS_LOG_FUNCTION (this);
   if (m_socket == 0)
     {
-      TypeId tid = TypeId::LookupByName ("ns3::QuicSocketFactory");
+      // Create a TCP or QUIC socket depending on how the client is configured.
+      NS_LOG_INFO ("Creating " << m_protocolName << " socket");
+      std::string socketFactoryName = GetSocketFactoryNameFromProtocol (m_protocolName);
+      TypeId tid = TypeId::LookupByName (socketFactoryName);
+      
       m_socket = Socket::CreateSocket (GetNode (), tid);
+
       if (Ipv4Address::IsMatchingType (m_peerAddress) == true)
         {
           m_socket->Connect (InetSocketAddress (Ipv4Address::ConvertFrom (m_peerAddress), m_peerPort));
@@ -519,14 +536,14 @@ TcpStreamClient::StartApplication (void)
           throw std::runtime_error("Failed to recognize address type.");
         }
       m_socket->SetConnectCallback (
-        MakeCallback (&TcpStreamClient::ConnectionSucceeded, this),
-        MakeCallback (&TcpStreamClient::ConnectionFailed, this));
-      m_socket->SetRecvCallback (MakeCallback (&TcpStreamClient::HandleRead, this));
+        MakeCallback (&StreamClient::ConnectionSucceeded, this),
+        MakeCallback (&StreamClient::ConnectionFailed, this));
+      m_socket->SetRecvCallback (MakeCallback (&StreamClient::HandleRead, this));
     }
 }
 
 void
-TcpStreamClient::StopApplication ()
+StreamClient::StopApplication ()
 {
   NS_LOG_FUNCTION (this);
 
@@ -547,7 +564,7 @@ TcpStreamClient::StopApplication ()
 
 template <typename T>
 void
-TcpStreamClient::PreparePacket (T & message)
+StreamClient::PreparePacket (T & message)
 {
   NS_LOG_FUNCTION (this << message);
   std::ostringstream ss;
@@ -565,7 +582,7 @@ TcpStreamClient::PreparePacket (T & message)
 }
 
 void
-TcpStreamClient::ConnectionSucceeded (Ptr<Socket> socket)
+StreamClient::ConnectionSucceeded (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
   controllerEvent event = init;
@@ -573,14 +590,14 @@ TcpStreamClient::ConnectionSucceeded (Ptr<Socket> socket)
 }
 
 void
-TcpStreamClient::ConnectionFailed (Ptr<Socket> socket)
+StreamClient::ConnectionFailed (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
-  NS_LOG_WARN ("Tcp Stream Client connection failed");
+  NS_LOG_WARN ("Stream Client connection failed");
 }
 
 void
-TcpStreamClient::LogThroughput (uint32_t packetSize)
+StreamClient::LogThroughput (uint32_t packetSize)
 {
   NS_LOG_FUNCTION (this);
   throughputLog << std::setfill (' ') << std::setw (13) << Simulator::Now ().GetMicroSeconds ()  / (double) 1000000 << " "
@@ -589,7 +606,7 @@ TcpStreamClient::LogThroughput (uint32_t packetSize)
 }
 
 void
-TcpStreamClient::LogDownload ()
+StreamClient::LogDownload ()
 {
   NS_LOG_FUNCTION (this);
   downloadLog << std::setfill (' ') << std::setw (13) << m_segmentCounter << " "
@@ -602,7 +619,7 @@ TcpStreamClient::LogDownload ()
 }
 
 void
-TcpStreamClient::LogBuffer ()
+StreamClient::LogBuffer ()
 {
   NS_LOG_FUNCTION (this);
   bufferLog << std::setfill (' ') << std::setw (13) << m_transmissionEndReceivingSegment / (double)1000000 << " "
@@ -613,7 +630,7 @@ TcpStreamClient::LogBuffer ()
 }
 
 void
-TcpStreamClient::LogAdaptation (algorithmReply answer)
+StreamClient::LogAdaptation (algorithmReply answer)
 {
   NS_LOG_FUNCTION (this << m_currentRepIndex);
   adaptationLog << std::setfill (' ') << std::setw (13) << m_segmentCounter << " "
@@ -625,7 +642,7 @@ TcpStreamClient::LogAdaptation (algorithmReply answer)
 }
 
 void
-TcpStreamClient::LogPlayback ()
+StreamClient::LogPlayback ()
 {
   NS_LOG_FUNCTION (this);
   playbackLog << std::setfill (' ') << std::setw (13) << m_currentPlaybackIndex << " "
@@ -635,12 +652,12 @@ TcpStreamClient::LogPlayback ()
 }
 
 std::string 
-TcpStreamClient::LogFileName(const std::string& simId, const std::string& clientId, const std::string& logSuffix) {
+StreamClient::LogFileName(const std::string& simId, const std::string& clientId, const std::string& logSuffix) {
   return dashLogDirectory + m_algoName + "/" + simId + "/" "cl" + clientId + "_"  + logSuffix + ".txt";
 }
 
 void
-TcpStreamClient::InitializeLogFiles (std::string simulationId, std::string clientId, std::string numberOfClients)
+StreamClient::InitializeLogFiles (std::string simulationId, std::string clientId, std::string numberOfClients)
 {
   NS_LOG_FUNCTION (this);
   std::string dLog = LogFileName(simulationId, clientId, "downloadLog");
